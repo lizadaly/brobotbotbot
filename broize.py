@@ -2,6 +2,7 @@ from __future__ import print_function, unicode_literals
 import random
 import logging
 import os
+import datetime
 
 os.environ['NLTK_DATA'] = os.getcwd() + '/nltk_data'
 
@@ -13,16 +14,35 @@ logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 # start:example-hello.py
-# Sentences we'll respond with if the user greeted us
-GREETING_KEYWORDS = ("hello", "hi", "greetings", "sup", "what's up",)
+
+# Sentences we'll respond with if the user greeted us; only matches on single words
+GREETING_KEYWORDS = ("hello", "hi", "greetings", "sup")
 
 GREETING_RESPONSES = ["'sup bro", "hey", "*nods*", "hey you get my snap?"]
+
+# Intro questions: multiword matches
+# Note: Apostrophes must be encoded here with a separating space; Textblob swallows other punctuation
+INTRO_QUESTIONS = ("how 's it going", "how are you", "long time no see", "what 's up")
+
+INTRO_RESPONSES = ["I'm good, how about you?", "Could be better, but oh well.", "Let me tell you about my last workout.", "I've had better days.", "Work is giving me a headache" ]
+
+def check_for_intro_question (sentence):
+    """Sometimes people greet by introducing a question."""
+    utterance = " ".join(sentence.words).lower()
+    for question in INTRO_QUESTIONS:
+        if utterance.startswith(question):
+            """Here we will pick a mood; the bot's mood will change by the hour."""
+            hour = datetime.datetime.now().hour
+            return INTRO_RESPONSES[hour % len(INTRO_RESPONSES)]
+
 
 def check_for_greeting(sentence):
     """If any of the words in the user's input was a greeting, return a greeting response"""
     for word in sentence.words:
         if word.lower() in GREETING_KEYWORDS:
             return random.choice(GREETING_RESPONSES)
+
+
 # start:example-none.py
 # Sentences we'll respond with if we have no idea what the user just said
 NONE_RESPONSES = [
@@ -212,6 +232,10 @@ def respond(sentence):
     if not resp:
         resp = check_for_greeting(parsed)
 
+    # If we were asked an intro question, we'll return an intro response
+    if not resp:
+        resp = check_for_intro_question(parsed)
+
     if not resp:
         # If we didn't override the final sentence, try to construct a new one:
         if not pronoun:
@@ -265,7 +289,7 @@ if __name__ == '__main__':
     import sys
     # Usage:
     # python broize.py "I am an engineer"
-    if (len(sys.argv) > 0):
+    if (len(sys.argv) > 1):
         saying = sys.argv[1]
     else:
         saying = "How are you, brobot?"
